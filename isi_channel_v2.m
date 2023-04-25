@@ -11,23 +11,30 @@ sequenceLength = 10000;
 iterations = 10;
 avBER = 0;
 avBERv = 0;
+avBERref = 0;
 channelMemory = [1, 0.4, -0.2];
 states = [1,1;-1,1;1,-1;-1,-1];
 
-bitSequence = randomBitSequence(sequenceLength);
-antipodalSequence = bitToAntipodal(bitSequence, energy);
-ISISequence = conv(channelMemory, antipodalSequence);
+% bitSequence = randomBitSequence(sequenceLength);
+% antipodalSequence = bitToAntipodal(bitSequence, energy);
+% ISISequence = conv(channelMemory, antipodalSequence);
 %ISISequence = [1, -1.2,  0.5, -1.5, -0.2, 1, 0.8, 0.9];
-seqLen = length(ISISequence);
+%seqLen = length(ISISequence);
 
 for j = 1:iterations %start simulation and run iterations number of time
-    j
+    disp(j);
+    
     bitSequence = randomBitSequence(sequenceLength);   %generate random array of 1 and 0
     antipodalSequence = bitToAntipodal(bitSequence, energy); 
     ISISequence = conv(channelMemory, antipodalSequence);
     
+    BER = zeros(1,length(SNRDB));
+    BERv = zeros(1,length(SNRDB));
+    BERref = zeros(1,length(SNRDB));
+    
     for i = 1:length(SNRDB)
         m = addAWGN(ISISequence, SNRDB(i));
+        
         mhatv = viterbi(m, states, channelMemory);
         decodedBits = antipodalToBit(mhatv, energy);
         
@@ -37,6 +44,12 @@ for j = 1:iterations %start simulation and run iterations number of time
         BER(i) = calcultateBitErrorRate(bitSequence, bhat);
         BERv(i) = calcultateBitErrorRate(bitSequence, decodedBits);
         
+        mref = addAWGN(antipodalSequence, SNRDB(i)); %add white gaussian noise to signal
+        mhatref = estimateSignal(mref, energy);       %estimate signal from recieved values
+        bhatref = antipodalToBit(mhatref, energy);    %convert estimates into bits sequence
+
+        BERref(i) = calcultateBitErrorRate(bitSequence, bhatref); %calculate bit error rate
+        
 %         bit = transpose(bitSequence)
 %         vit = transpose(decodedBits)
 %         MLD = transpose(bhat)
@@ -44,11 +57,13 @@ for j = 1:iterations %start simulation and run iterations number of time
     
     avBER = avBER + BER;
     avBERv = avBERv + BERv; %sum the BER of all iterations
+    avBERref = avBERref + BERref; %case withouth ISI and SxS
 end
 
 
 avBER = avBER / iterations;
 avBERv = avBERv / iterations;
+avBERref = avBERref / iterations;
 
 %% Plot
 figure
@@ -56,8 +71,9 @@ semilogy(SNRDB,avBER,'-o');
 axis([-4 20 10^-6 10^0])
 hold on
 semilogy(SNRDB,avBERv,'-x')
+semilogy(SNRDB,avBERref,'-+')
 grid on
-legend('ML', 'viterbi');
+legend('SxS', 'viterbi','reference');
 xlabel('SNR [dB]')
 ylabel('BER')
 
@@ -66,11 +82,12 @@ toc
 %% Reciever viterbi
 function [decodedAntipodal] = viterbi(m, states, channelMemory)
     U(:,1) = initialUValue(m, states, channelMemory);
+    %U(:,1) = zeros(4,1);
     prevState = zeros(4,1);
 
     for i = length(channelMemory):length(m)
         V = getV(states, m, i, channelMemory);
-        [U(:,i-1), prevState(:,i-2)] = getUNext(states, U(:,i-2), V);
+        [U(:,i-1), prevState(:,i-2)] = getUNext(U(:,i-2), V);
     end
 
     k = shortestPath(length(m), prevState, U);
@@ -91,7 +108,7 @@ end
 
 function [k] = shortestPath(seqLen, prevState, U)
     k = zeros(1,seqLen-1);
-    [a,b] = min(U(:,seqLen-1));
+    [~,b] = min(U(:,seqLen-1));
     for i = 1:seqLen-1
         if (i == 1)
             k(seqLen-1) = b;%2 for example in book
@@ -169,7 +186,7 @@ function [V] = getV(states, ISISequence, recievedSymbol, channelMemory)
     end
 end
 
-function [Unext, prevState] = getUNext(states, U, V)
+function [Unext, prevState] = getUNext(U, V)
     test = U+V;
     [Unext, prevState] = min(test);
 end
