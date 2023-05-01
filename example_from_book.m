@@ -6,7 +6,9 @@ clc
 
 %Example 7.13
 channelMemory = [1, 0.4, -0.2];     %given [S_0, S_(+-1), S_(+-2)]
-states = [1,1;-1,1;1,-1;-1,-1];     %given [(a_(l-1), a_(l-2)]
+%states = [1,1;-1,1;1,-1;-1,-1]; 
+states = [-1,-1;-1,1;1,-1;1,1];
+%given [(a_(l-1), a_(l-2)]
 %states = [  1,1,1 ; -1,1,1 ; 1,-1,1 ; -1,-1,1; 1,1,-1; -1,1,-1; 1,-1,-1; -1,-1,-1];
 prevState = zeros(length(states),1);             %initialize
 
@@ -16,7 +18,7 @@ seqLen = length(ISISequence);   %length of recieved sequence
 U(:,1) = initialUValue(ISISequence, states, channelMemory);     %step 1
 
 for i = length(channelMemory):seqLen
-    V = getV(states, ISISequence, i, channelMemory);    %step 2
+    V = getV(states, ISISequence, i, channelMemory)     %step 2
     %the matrix U stores all the state metrics with states in vertical and
     %step in the horizontal 
     %the matrix prevState stores all the previous states of each state with
