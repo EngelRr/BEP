@@ -98,6 +98,7 @@ for asdf = 1:length(SNRDB)
         end
     end
 
+    % decoding the Rx
     decodedSyms = zeros(length(k)+1,1);
     for i = 1:length(k)
         if (i == 1)
@@ -109,7 +110,7 @@ for asdf = 1:length(SNRDB)
         end
     end
     
-    %align
+    %aligning bits
     recievedBits = antipodalToBit(decodedSyms);
     alignedBitSeq = recievedBits(memory+1:length(recievedBits)-2);
 
@@ -131,7 +132,7 @@ for asdf = 1:length(SNRDB)
 %     BERref(asdf) = sum(bitSequence ~= referenceDecoded)/length(bitSequence);
 %     BERSxS(asdf) = sum(bitSequence ~= SxSDecoded(1:length(bitSequence)))/length(bitSequence);
 end
-
+a
 %% Plot
 figure
 semilogy(SNRDB,BER,'-o');
