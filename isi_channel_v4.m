@@ -132,7 +132,7 @@ for asdf = 1:length(SNRDB)
 %     BERref(asdf) = sum(bitSequence ~= referenceDecoded)/length(bitSequence);
 %     BERSxS(asdf) = sum(bitSequence ~= SxSDecoded(1:length(bitSequence)))/length(bitSequence);
 end
-a
+
 %% Plot
 figure
 semilogy(SNRDB,BER,'-o');

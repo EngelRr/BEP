@@ -3,19 +3,15 @@ close all
 clc
 tic
 
-%rng('default')
+profile on
 
 %% Parameters
 sequenceLength = 1e5;
 memory = 2;
 symbols = [-1 1];
 M = length(symbols);
-iterations = 10;
 SNRDB = -4:2:16; %SNR in dB
 SNR=10.^(SNRDB/10); %linear SNR 
-avBER = 0;
-avBERref = 0;
-avBERSxS = 0;
 energy = 1;
 noStates = M^memory;
 
@@ -33,15 +29,11 @@ for i=1:memory
             end
         end
     end
-end
+end   
 
-
-   
-    
 %% Get random sequence
 bitSequence = randi([0 1], sequenceLength, 1);
 TxSequence = bitToAntipodal(bitSequence, energy);
-%channelCoef = [1,normrnd(0,.3,1,memory)];
 channelCoef = [1,0.4,-0.2];
 ISISequence = conv(channelCoef, TxSequence);
 
@@ -49,40 +41,63 @@ BER = zeros(1,length(SNRDB));
 BERref = zeros(1,length(SNRDB));
 BERSxS = zeros(1,length(SNRDB));
 
-for asdf = 1:length(SNRDB)
-    disp(asdf);
+
+
+parfor asdf = 1:length(SNRDB)
+    hallo = zeros(1:memory-1);
+    hoi = zeros(1:memory-1);
+    optie = zeros(M,2);
+    %disp(asdf);
     RxSequence = addAWGN(ISISequence, SNRDB(asdf));
-    %ISISequence = [1, -1.2,  0.5, -1.5, -0.2, 1, 0.8, 0.9];
     %% Viterbi
     %initialize trellis
     trellis = zeros(noStates,length(RxSequence));
     %trellis(:,1) = [2.4;-3.2;5.6;3.2];
     path = zeros(noStates,length(RxSequence)-1);
     pathMetrics = zeros(1,M);
-
+    
+    
+    
     %for loop over length of sequence
     for i = 1:length(RxSequence)
         %for loop over number of states
         for j = 1:noStates
             x = 1; 
+            currState = states(j,1);
+            temp1 = -2*currState*RxSequence(i);
+            temp3 = currState^2;
+            for test2 = 2:memory
+                hallo(test2-1) = states(j,test2);
+            end
+            
             for m = 1:noStates
                 %for loop over all possible paths from/to a state
-                if(states(m,1:size(states,2)-1) == states(j,2:size(states,2)))
-                temp1 = -2*states(j,1)*RxSequence(i);
-                temp3 = states(j,1)^2;
-                temp2 = 0;
-                    for k = 1:M
-                        temp2 = states(m,k)*channelCoef(k+1) + temp2;
+                for test3 = 1:memory-1
+                    hoi(test3) = states(m,test3);
+                end
+                if(hoi == hallo)
+                    temp2 = 0;
+                    for p = 1:M
+                        temp2 = states(m,p)*channelCoef(p+1) + temp2;
                     end
-                temp2 = 2*states(j,1)*temp2;
-                total = temp1+temp2+temp3;
-                optie(x,:) = [trellis(m,i)+total,m];
-                x = x+1;
+                    temp2 = currState*temp2;
+                    total = temp1+temp2+temp3;
+                    optie(x,:) = [trellis(m,i)+total,m];
+                    x = x+1;
                 end
             end
-            [~,b] = min(optie);
-            trellis(j,i+1) = optie(b(1),1);
-            path(j,i) = optie(b(1),2);
+            
+            minimum = optie(1,1);
+            minimumPos = 1;
+            for optieLen = 1:length(optie)  
+                if (optie(optieLen,1) <= minimum)
+                    minimum = optie(optieLen,1); 
+                    minimumPos = optieLen;
+                end
+            end
+            %[~,b] = min(optie);
+            trellis(j,i+1) = optie(minimumPos,1);
+            path(j,i) = optie(minimumPos,2);
         end
     end
 % end of trellis processing 
@@ -123,16 +138,18 @@ for asdf = 1:length(SNRDB)
     %Comparison with SxS 
     SxSRecieved = estimateSignal(RxSequence, energy);
     SxSDecoded = antipodalToBit(SxSRecieved);
+    % 
+    %     BER(asdf) = sum(bitSequence + alignedBitSeq)/length(bitSequence);
+    %     BERref(asdf) = sum(bitSequence + referenceDecoded)/length(bitSequence);
+    %     BERSxS(asdf) = sum(bitSequence + SxSDecoded(1:length(bitSequence)))/length(bitSequence);
 
-    BER(asdf) = sum(bitSequence + alignedBitSeq)/length(bitSequence);
-    BERref(asdf) = sum(bitSequence + referenceDecoded)/length(bitSequence);
-    BERSxS(asdf) = sum(bitSequence + SxSDecoded(1:length(bitSequence)))/length(bitSequence);
-
-%     BER(asdf) = sum(bitSequence ~= alignedBitSeq)/length(bitSequence);
-%     BERref(asdf) = sum(bitSequence ~= referenceDecoded)/length(bitSequence);
-%     BERSxS(asdf) = sum(bitSequence ~= SxSDecoded(1:length(bitSequence)))/length(bitSequence);
+    BER(asdf) = sum(bitSequence ~= alignedBitSeq)/length(bitSequence);
+    BERref(asdf) = sum(bitSequence ~= referenceDecoded)/length(bitSequence);
+    BERSxS(asdf) = sum(bitSequence ~= SxSDecoded(1:length(bitSequence)))/length(bitSequence);
 end
 
+profile viewer
+toc
 %% Plot
 figure
 semilogy(SNRDB,BER,'-o');
@@ -147,7 +164,6 @@ legend('viterbi', 'reference','SxS');
 xlabel('SNR [dB]')
 ylabel('BER')
 
-toc
 %% Function
 function [bhat] = antipodalToBit(sequence)
     bhat = zeros(length(sequence),1);
