@@ -44,7 +44,7 @@ BERSxS = zeros(1,length(SNRDB));
 
 
 
-parfor SNRDBvalue = 1:length(SNRDB)
+parfor asdf = 1:length(SNRDB)
     %errorCount and loopCount used to get more data for plot
     errorCount = 0;
     loopCount = 0;
@@ -58,7 +58,7 @@ parfor SNRDBvalue = 1:length(SNRDB)
         option = zeros(M,2);
 
         %creating the RxSequence
-        RxSequence = addAWGN(ISISequence, SNRDB(SNRDBvalue));
+        RxSequence = addAWGN(ISISequence, SNRDB(asdf));
         %% Viterbi
         %initialize trellis
         trellis = zeros(noStates,length(RxSequence));
@@ -155,7 +155,7 @@ parfor SNRDBvalue = 1:length(SNRDB)
         alignedBitSeq = recievedBits(memory+1:length(recievedBits)-2);
 
         % Comparison with ISI-free AWGN performance 
-        reference = addAWGN(TxSequence, SNRDB(SNRDBvalue));
+        reference = addAWGN(TxSequence, SNRDB(asdf));
         referenceRecieved = estimateSignal(reference, energy);
         referenceDecoded = antipodalToBit(referenceRecieved);
 
@@ -164,17 +164,17 @@ parfor SNRDBvalue = 1:length(SNRDB)
         SxSDecoded = antipodalToBit(SxSRecieved);
 
         %Calculating the bit error rate
-        BER(SNRDBvalue) = sum(bitSequence ~= alignedBitSeq)/length(bitSequence) +BER(SNRDBvalue);
-        BERref(SNRDBvalue) = sum(bitSequence ~= referenceDecoded)/length(bitSequence) + BERref(SNRDBvalue);
-        BERSxS(SNRDBvalue) = sum(bitSequence ~= SxSDecoded(1:length(bitSequence)))/length(bitSequence) + BERSxS(SNRDBvalue);
+        BER(asdf) = sum(bitSequence ~= alignedBitSeq)/length(bitSequence) +BER(asdf);
+        BERref(asdf) = sum(bitSequence ~= referenceDecoded)/length(bitSequence) + BERref(asdf);
+        BERSxS(asdf) = sum(bitSequence ~= SxSDecoded(1:length(bitSequence)))/length(bitSequence) + BERSxS(asdf);
 
         errorCount = errorCount + sum(bitSequence ~= alignedBitSeq);
     end
     
     %getting the average BER for every loop
-    BER(SNRDBvalue) = BER(SNRDBvalue)/loopCount;
-    BERref(SNRDBvalue) = BERref(SNRDBvalue)/loopCount;
-    BERSxS(SNRDBvalue) = BERSxS(SNRDBvalue)/loopCount;
+    BER(asdf) = BER(asdf)/loopCount;
+    BERref(asdf) = BERref(asdf)/loopCount;
+    BERSxS(asdf) = BERSxS(asdf)/loopCount;
 end
 
 profile viewer
