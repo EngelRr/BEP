@@ -2,16 +2,16 @@ clear
 close all
 clc
 tic
-
+rng(1);
 profile on
 
 %% Parameters
-sequenceLength = 1e2;
+sequenceLength = 1e3;
 errorCount = 0;
 memory = 2;
 symbols = [-1 1];
 M = length(symbols);
-SNRDB = -4:1:15; %SNR in dB
+SNRDB = 4:1:8; %SNR in dB
 %SNR=10.^(SNRDB/10); %linear SNR 
 energy = 1;
 noStates = M^memory;
@@ -35,7 +35,7 @@ end
 % Get random sequence
 bitSequence = randi([0 1], sequenceLength, 1);
 TxSequence = bitToAntipodal(bitSequence, energy);
-channelCoef = [1,0.4,-0.2];
+channelCoef = [1,0.2,0.1];
 ISISequence = conv(channelCoef, TxSequence);
 
 BER = zeros(1,length(SNRDB));
@@ -45,10 +45,11 @@ BERSxS = zeros(1,length(SNRDB));
 
 
 parfor SNRDBvalue = 1:length(SNRDB)
+    disp(SNRDB(SNRDBvalue));
     %errorCount and loopCount used to get more data for plot
     errorCount = 0;
     loopCount = 0;
-    while (errorCount < 3e3)
+    while (errorCount < 1e3)
         loopCount = loopCount+1;
         
         %initializing variables that are used later to compare if a
@@ -74,7 +75,7 @@ parfor SNRDBvalue = 1:length(SNRDB)
                 %2*a_k*Z_k + a_k*sum(a_m*s_(k-m)) + a_k^2*s_0 = temp1 +
                 %temp2 + temp3
                 temp1 = -2*states(j,1)*RxSequence(i);
-                temp3 = states(j,1)^2;
+                temp3 = states(j,1)^2*channelCoef(1);
                 
                 %selecting the overlap of the next state with the previous
                 %state, used to check for possible transitions. It is done
@@ -91,9 +92,9 @@ parfor SNRDBvalue = 1:length(SNRDB)
                         currState(test3) = states(m,test3);
                     end
                     %check for possible state transitions
-                    if(currState == nextState)
+                    if(states(j,memory)==states(m,1))
                         temp2 = 0;
-                        for p = 1:M
+                        for p = 1:memory
                             temp2 = states(m,p)*channelCoef(p+1) + temp2;
                         end
                         temp2 = states(j,1)*temp2;
@@ -152,7 +153,7 @@ parfor SNRDBvalue = 1:length(SNRDB)
 
         %aligning bits
         recievedBits = antipodalToBit(decodedSyms);
-        alignedBitSeq = recievedBits(memory+1:length(recievedBits)-2);
+        alignedBitSeq = recievedBits(memory+1:length(recievedBits)-memory);
 
         % Comparison with ISI-free AWGN performance 
         reference = addAWGN(TxSequence, SNRDB(SNRDBvalue));

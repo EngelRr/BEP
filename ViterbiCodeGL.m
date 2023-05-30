@@ -2,7 +2,7 @@ clear
 close all
 clc
 tic
-
+profile on
 %rng('default')
 
 %% Parameters
@@ -15,7 +15,7 @@ noStates = M^memory;
 
 
 %iterations = 10;
-SNRDB = 4:1:10; %SNR in dB
+SNRDB = 4:1:8; %SNR in dB
 SNR=10.^(SNRDB/10); %linear SNR 
 avBER = 0;
 avBERref = 0;
@@ -142,7 +142,7 @@ for asdf = 1:length(SNRDB)
         BERref(asdf) = BitErrorCountRef/(it*length(bitSequence));
         BERSxS(asdf) = BitErrorCountSxS/(it*length(bitSequence));
 end
-
+profile viewer
 %% Plot
 figure
 semilogy(SNRDB,BER,'-o');
