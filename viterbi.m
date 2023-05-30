@@ -1,22 +1,10 @@
-function [symbols] = viterbi(RxSequence,symbols,channelCoef)
+
+function [symbols] = viterbi(RxSequence,states,channelCoef,possibleTransition)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
-M = length(symbols);
-memory = length(channelCoef)-1;
-noStates = M^memory;
 
-states = zeros(noStates,memory);
-for i=1:memory
-    temp = 1;
-    for j=1:(M^(i-1))
-        for k=1:M
-            for m=1:(M^(memory-i))
-                states(temp,i) = symbols(k);
-                temp = temp + 1;
-            end
-        end
-    end
-end
+memory = length(channelCoef)-1;
+noStates = size(states,1);
 
 trellis = zeros(noStates,length(RxSequence)+1);
 test2 = zeros(noStates,length(RxSequence));
@@ -30,11 +18,12 @@ for i = 1:length(RxSequence)
         
         for m = 1:noStates   % present state loop
             %for loop over all possible paths from/to a state
-            if (states(j,memory)==states(m,1))   % Verifies trellis connection between state m and state j
-                temp2 = 0;
-                for p = 1:memory
-                    temp2 = states(m,p)*channelCoef(p+1) + temp2;
-                end
+            if (possibleTransition(j,m))   % Verifies trellis connection between state m and state j
+                temp2 = sum(states(m,:).*channelCoef(2:end));
+%                 temp2 = 0;
+%                 for p = 1:memory
+%                     temp2 = states(m,p)*channelCoef(p+1) + temp2;
+%                 end
                 temp2 = states(j,1)*temp2;
                 branch_metric = temp1+temp2+temp3;
                    
@@ -48,17 +37,16 @@ for i = 1:length(RxSequence)
                 end
 
                 flag_first=0;
-            end
-            
+            end 
         end
     end
 end
 
-k = zeros(1,length(test2)+1);
-test = length(test2)+1;
+k = zeros(1,length(RxSequence)+1);
+test = length(RxSequence)+1;
 for i = 1:test
     if (i == 1)
-        [~,k(test)] = min(trellis(:,length(trellis)));
+        [~,k(test)] = min(trellis(:,length(RxSequence)+1));
     else
         k(test-i+1) = test2(k(test-i+2),length(test2)+1-i+1);
     end

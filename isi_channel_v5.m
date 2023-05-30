@@ -7,10 +7,10 @@ profile on
 %% Parameters
 sequenceLength = 1e3;    % Sequence length per iteration 
 symbols = [-1 1];
-% M = length(symbols);
-channelCoef = [1,0.2,0.1];
+M = length(symbols);
+channelCoef = [1,0.2,0.2];
 memory = length(channelCoef)-1;
-% noStates = M^memory;
+noStates = M^memory;
 
 SNRDB = 4:1:8; %SNR in dB
 SNR=10.^(SNRDB/10); %linear SNR 
@@ -24,20 +24,41 @@ BERref = zeros(1,length(SNRDB));
 BERSxS = zeros(1,length(SNRDB));
 
 %% Generate states
-%initialize states
-% states = zeros(noStates,memory);
-% for i=1:memory
-%     temp = 1;
-%     for j=1:(M^(i-1))
-%         for k=1:M
-%             for m=1:(M^(memory-i))
-%                 states(temp,i) = symbols(k);
-%                 temp = temp + 1;
-%             end
-%         end
-%     end
-% end
-   
+% initialize states
+states = zeros(noStates,memory);
+for i=1:memory
+    temp = 1;
+    for j=1:(M^(i-1))
+        for k=1:M
+            for m=1:(M^(memory-i))
+                states(temp,i) = symbols(k);
+                temp = temp + 1;
+            end
+        end
+    end
+end
+
+%% Check possible transitions
+nextState = zeros(1:memory-1);
+currState = zeros(1:memory-1);
+possibleTransition = zeros(noStates,noStates);
+
+for j = 1:noStates      % future state loop
+    for tmp1 = 2:memory
+        nextState(tmp1-1) = states(j,tmp1);
+    end
+    for m = 1:noStates   % present state loop
+        for tmp2 = 1:memory-1
+            currState(tmp2) = states(m,tmp2);
+        end
+        %for loop over all possible paths from/to a state
+        if (nextState==currState)   % Verifies trellis connection between state m and state j
+            possibleTransition(j,m) = 1;
+        end
+    end
+end
+
+%% Rest   
 for asdf = 1:length(SNRDB)
     BitErrorCount=0;
     BitErrorCountRef=0;
@@ -55,8 +76,14 @@ for asdf = 1:length(SNRDB)
         RxSequence = addAWGN(ISISequence, SNRDB(asdf));
 
         %% Viterbi
-        decodedSyms = viterbi(RxSequence, symbols, channelCoef);
+        tic
+        decodedSyms = viterbi(RxSequence, states, channelCoef, possibleTransition);
+        toc
+        tic
+        test = viterbiPar(RxSequence, states, channelCoef, possibleTransition);
+        toc
 
+        sum(decodedSyms-test)
         %aligning bits
         recievedBits = antipodalToBit(decodedSyms(memory+1:end-memory));
         alignedBitSeq = recievedBits;
