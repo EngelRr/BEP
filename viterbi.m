@@ -19,11 +19,11 @@ for i = 1:length(RxSequence)
         for m = 1:noStates   % present state loop
             %for loop over all possible paths from/to a state
             if (possibleTransition(j,m))   % Verifies trellis connection between state m and state j
-                temp2 = sum(states(m,:).*channelCoef(2:end));
-%                 temp2 = 0;
-%                 for p = 1:memory
-%                     temp2 = states(m,p)*channelCoef(p+1) + temp2;
-%                 end
+%                 temp2 = sum(states(m,:).*channelCoef(2:end));
+                temp2 = 0;
+                for p = 1:memory
+                    temp2 = states(m,p)*channelCoef(p+1) + temp2;
+                end
                 temp2 = states(j,1)*temp2;
                 branch_metric = temp1+temp2+temp3;
                    
@@ -46,9 +46,9 @@ k = zeros(1,length(RxSequence)+1);
 test = length(RxSequence)+1;
 for i = 1:test
     if (i == 1)
-        [~,k(test)] = min(trellis(:,length(RxSequence)+1));
+        [~,k(test)] = min(trellis(:,end));
     else
-        k(test-i+1) = test2(k(test-i+2),length(test2)+1-i+1);
+        k(test-i+1) = test2(k(test-i+2),size(test2,2)+1-i+1);
     end
 end
 

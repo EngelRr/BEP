@@ -11,16 +11,15 @@ test2 = zeros(noStates,length(RxSequence));
 
 for i = 1:length(RxSequence)
     %for loop over number of states
-    parfor j = 1:noStates      % future state loop
+    for j = 1:noStates      % future state loop
         temp1 = -2*states(j,1)*RxSequence(i);
         temp3 = states(j,1)^2*channelCoef(1);
         flag_first=1;
         
-        v = zeros();
-        
         for m = 1:noStates   % present state loop
             %for loop over all possible paths from/to a state
             if (possibleTransition(j,m))   % Verifies trellis connection between state m and state j
+%                 temp2 = sum(states(m,:).*channelCoef(2:end));
                 temp2 = 0;
                 for p = 1:memory
                     temp2 = states(m,p)*channelCoef(p+1) + temp2;
@@ -38,16 +37,16 @@ for i = 1:length(RxSequence)
                 end
 
                 flag_first=0;
-            end %if transition is possible
-        end %second state loop
-    end %first state loop
-end %sequence length
+            end 
+        end
+    end
+end
 
-k = zeros(1,length(test2)+1);
-test = length(test2)+1;
+k = zeros(1,length(RxSequence)+1);
+test = length(RxSequence)+1;
 for i = 1:test
     if (i == 1)
-        [~,k(test)] = min(trellis(:,length(trellis)));
+        [~,k(test)] = min(trellis(:,end));
     else
         k(test-i+1) = test2(k(test-i+2),length(test2)+1-i+1);
     end

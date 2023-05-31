@@ -25,7 +25,6 @@ for i = 1:length(RxSequence)
         flag_first=1;
         
         c = zeros(noStates,1);
-%         e = states(j,1);
         
         for m = 1:noStates   % present state loop
             %for loop over all possible paths from/to a state
@@ -56,13 +55,13 @@ for i = 1:length(RxSequence)
     trellis(:,i+1) = tmpx;
 end
 
-k = zeros(1,length(test2)+1);
-test = length(test2)+1;
+k = zeros(1,length(RxSequence)+1);
+test = length(RxSequence)+1;
 for i = 1:test
     if (i == 1)
-        [~,k(test)] = min(trellis(:,length(trellis)));
+        [~,k(test)] = min(trellis(:,end));
     else
-        k(test-i+1) = test2(k(test-i+2),length(test2)+1-i+1);
+        k(test-i+1) = test2(k(test-i+2),size(test2,2)+1-i+1);
     end
 end
 

@@ -8,11 +8,11 @@ profile on
 sequenceLength = 1e3;    % Sequence length per iteration 
 symbols = [-1 1];
 M = length(symbols);
-channelCoef = [1,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2];
+channelCoef = [1,0.2,0.2];
 memory = length(channelCoef)-1;
 noStates = M^memory;
 
-SNRDB = 4:1:8; %SNR in dB
+SNRDB = 8:1:20; %SNR in dB
 SNR=10.^(SNRDB/10); %linear SNR 
 energy = 1;
 
@@ -42,25 +42,21 @@ end
 nextState = zeros(1:memory-1);
 currState = zeros(1:memory-1);
 possibleTransition = zeros(noStates,noStates);
-tic
-parfor j = 1:noStates% future state loop
-    a = nextState(1:end);
-    b = currState(1:end);
+
+for j = 1:noStates      % future state loop
     for tmp1 = 2:memory
-        a(tmp1-1) = states(j,tmp1);
+        nextState(tmp1-1) = states(j,tmp1);
     end
     for m = 1:noStates   % present state loop
-        
         for tmp2 = 1:memory-1
-            b(tmp2) = states(m,tmp2);
+            currState(tmp2) = states(m,tmp2);
         end
         %for loop over all possible paths from/to a state
-        if (a==b)   % Verifies trellis connection between state m and state j
+        if (nextState==currState)   % Verifies trellis connection between state m and state j
             possibleTransition(j,m) = 1;
         end
     end
 end
-toc
 
 %% Rest   
 for asdf = 1:length(SNRDB)
@@ -81,15 +77,15 @@ for asdf = 1:length(SNRDB)
         RxSequence = addAWGN(ISISequence, SNRDB(asdf));
 
         %% Viterbi
-        tic
+%         tic
         decodedSyms = viterbi(RxSequence, states, channelCoef, possibleTransition);
-        toc
-        tic
-        test = viterbiPar(RxSequence, states, channelCoef, possibleTransition);
-        toc
+%         toc
+%         tic
+%         test = viterbiPar(RxSequence, states, channelCoef, possibleTransition);
+%         toc
 
-        sum(decodedSyms-test)
-%         aligning bits
+%         sum(decodedSyms-test)
+        %aligning bits
         recievedBits = antipodalToBit(decodedSyms(memory+1:end-memory));
 %         recievedBits = fourToBit(decodedSyms(memory+1:end-memory),symbols);
         alignedBitSeq = recievedBits;
@@ -104,8 +100,8 @@ for asdf = 1:length(SNRDB)
         %Comparison with SxS
         SxSRecieved = estimateSignal(RxSequence, energy);
         SxSDecoded = antipodalToBit(SxSRecieved((1:end-memory)));
-%         SxSRecieved = estimateSignalFour(RxSequence, symbols);
-%         SxSDecoded = fourToBit(SxSRecieved((1:end-memory)),symbols);
+        SxSRecieved = estimateSignalFour(RxSequence, symbols);
+        SxSDecoded = fourToBit(SxSRecieved((1:end-memory)),symbols);
         
         BitErrorCount=sum(bitSequence~=alignedBitSeq)+BitErrorCount;
         BitErrorCountRef=sum(bitSequence~=referenceDecoded)+BitErrorCountRef;
